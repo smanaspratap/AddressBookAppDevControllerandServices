@@ -2,20 +2,24 @@
 
 import com.addressbook.dto.AddressBookDTO;
 import com.addressbook.model.AddressBook;
+import com.addressbook.service.AddressBookService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
- * AddressBookController - Section 2 UC1
+ * AddressBookController - Section 2 UC2
  *
- * REST Controller updated to accept AddressBookDTO as the request body
- * and return AddressBook Model objects wrapped in ResponseEntity.
- * At this stage the Controller creates the Model directly from the DTO.
- * Managing the Model is the responsibility of the Service layer (next UC).
+ * REST Controller now delegates ALL business logic to AddressBookService.
+ * @Autowired annotation is used for Dependency Injection of the service bean.
+ * The Controller is now a thin HTTP layer only - no business logic here.
+ *
+ * Separation of Concerns:
+ *   Controller -> HTTP request/response mapping only
+ *   Service    -> all business logic and Model management
  *
  * Base URL: /addressbook/contacts
  *
@@ -30,43 +34,38 @@ import java.util.List;
 @RequestMapping("/addressbook/contacts")
 public class AddressBookController {
 
-    // GET all - returns a sample list to confirm DTO and Model are wired correctly
+    // Injecting AddressBookService via Spring Dependency Injection (@Autowired)
+    @Autowired
+    private AddressBookService addressBookService;
+
+    // GET all contacts - delegates to service layer
     @GetMapping
     public ResponseEntity<List<AddressBook>> getAllContacts() {
-        List<AddressBook> contacts = new ArrayList<>();
-        contacts.add(new AddressBook(1L, "Sample Contact", "9999999999",
-                "sample@test.com", "Sample Address"));
-        return new ResponseEntity<>(contacts, HttpStatus.OK);
+        return new ResponseEntity<>(addressBookService.getAllContacts(), HttpStatus.OK);
     }
 
-    // GET by ID - constructs a Model using the ID from the path variable
+    // GET contact by ID - delegates to service layer
     @GetMapping("/{id}")
     public ResponseEntity<AddressBook> getContactById(@PathVariable long id) {
-        AddressBook contact = new AddressBook(id, "Contact " + id, "9000000000",
-                "contact" + id + "@test.com", "Address " + id);
-        return new ResponseEntity<>(contact, HttpStatus.OK);
+        return new ResponseEntity<>(addressBookService.getContactById(id), HttpStatus.OK);
     }
 
-    // POST - accepts AddressBookDTO, creates AddressBook Model and returns it
+    // POST - delegates DTO to service which creates and returns the new Model
     @PostMapping
     public ResponseEntity<AddressBook> addContact(@RequestBody AddressBookDTO dto) {
-        AddressBook contact = new AddressBook(1L, dto.getName(), dto.getPhone(),
-                dto.getEmail(), dto.getAddress());
-        return new ResponseEntity<>(contact, HttpStatus.CREATED);
+        return new ResponseEntity<>(addressBookService.addContact(dto), HttpStatus.CREATED);
     }
 
-    // PUT - accepts DTO and ID, creates updated AddressBook Model and returns it
+    // PUT - delegates ID and DTO to service which updates and returns the Model
     @PutMapping("/{id}")
     public ResponseEntity<AddressBook> updateContact(@PathVariable long id,
                                                      @RequestBody AddressBookDTO dto) {
-        AddressBook contact = new AddressBook(id, dto.getName(), dto.getPhone(),
-                dto.getEmail(), dto.getAddress());
-        return new ResponseEntity<>(contact, HttpStatus.OK);
+        return new ResponseEntity<>(addressBookService.updateContact(id, dto), HttpStatus.OK);
     }
 
-    // DELETE - returns confirmation string for the deleted contact ID
+    // DELETE - delegates to service which removes contact and returns status message
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteContact(@PathVariable long id) {
-        return new ResponseEntity<>("Contact with ID " + id + " deleted successfully", HttpStatus.OK);
+        return new ResponseEntity<>(addressBookService.deleteContact(id), HttpStatus.OK);
     }
 }
